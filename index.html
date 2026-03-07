@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flatmates Expense Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #22c55e;
+            --whatsapp-color: #25d366;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --search-highlight: #fef08a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header { text-align: center; margin-bottom: 30px; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Naya Filtered Result Style */
+        .search-results-summary {
+            background-color: #eff6ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary-color);
+            display: none; /* Default hidden */
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            font-weight: 600;
+        }
+
+        button:hover { opacity: 0.9; }
+
+        .summary-boxes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+        }
+
+        .total-box { background-color: var(--primary-color); }
+        .per-person-box { background-color: var(--success-color); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th { background-color: #f1f5f9; }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pdf-btn { background-color: #ef4444; }
+        .wa-btn { background-color: var(--whatsapp-color); }
+        .clear-btn { background-color: var(--secondary-color); }
+        .delete-btn { background-color: #ef4444; padding: 5px 10px; }
+
+        .date-badge {
+            display: inline-block;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        @media print { .no-print { display: none !important; } }
+
+        @media (max-width: 600px) {
+            .grid-inputs { grid-template-columns: 1fr; }
+            .summary-boxes { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="reportArea">
+    <header>
+        <h1>🏢 Flatmates Expense Manager</h1>
+        <p>Monthly Shared Expenses Report</p>
+    </header>
+
+    <div class="card no-print">
+        <h3>Add New Expense</h3>
+        <div class="grid-inputs">
+            <div>
+                <label>Member Name</label><br>
+                <select id="memberSelect" style="width: 100%;">
+                    <option value="Nishant">Nishant</option>
+                    <option value="Amit">Amit</option>
+                    <option value="Devkran">Devkran</option>
+                    <option value="Ajay">Ajay</option>
+                    <option value="Narendra">Narendra</option>
+                    <option value="Harsha">Harsha</option>
+                </select>
+            </div>
+            <div>
+                <label>Amount (₹)</label><br>
+                <input type="number" id="amountInput" placeholder="Amount" style="width: 90%;">
+            </div>
+            <div>
+                <label>Description</label><br>
+                <input type="text" id="descInput" placeholder="What was bought?" style="width: 90%;">
+            </div>
+            <button onclick="addExpense()">Add Bill</button>
+        </div>
+    </div>
+
+    <div class="summary-boxes">
+        <div class="stat-box total-box">
+            <small>Total Monthly Spend</small>
+            <h2 id="totalAmount">₹0</h2>
+        </div>
+        <div class="stat-box per-person-box">
+            <small>Per Person Share (Total / 6)</small>
+            <h2 id="perPersonAmount">₹0</h2>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="no-print">
+            <h3>🔍 Search Person or Item</h3>
+            <input type="text" id="searchInput" class="search-box" placeholder="Type name (e.g. Nishant) to see their total..." onkeyup="renderTable()">
+            
+            <div id="searchSummary" class="search-results-summary">
+                <span id="searchLabel">Showing results for: </span>
+                <strong id="searchQueryText"></strong> | 
+                <strong>Total for this view: <span id="filteredTotalDisplay" style="color: var(--primary-color);">₹0</span></strong>
+            </div>
+        </div>
+        
+        <h3>Expense History</h3>
+        <table id="expenseTable">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Description & Date</th>
+                    <th>Amount</th>
+                    <th class="no-print">Action</th>
+                </tr>
+            </thead>
+            <tbody id="expenseBody"></tbody>
+        </table>
+
+        <div class="action-buttons no-print">
+            <button class="pdf-btn" onclick="downloadPDF()">📩 Download PDF</button>
+            <button class="wa-btn" onclick="shareWhatsApp()">📱 Share on WhatsApp</button>
+            <button class="clear-btn" onclick="clearAll()">🗑️ Clear Month</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('flatExpenses')) || [];
+
+    function addExpense() {
+        const name = document.getElementById('memberSelect').value;
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const desc = document.getElementById('descInput').value;
+
+        if (!amount || !desc) {
+            alert("Please enter both amount and description");
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+        const newExpense = {
+            id: Date.now(),
+            name: name,
+            amount: amount,
+            desc: desc,
+            dateTime: `${dateStr} | ${timeStr}`
+        };
+
+        expenses.push(newExpense);
+        saveAndRender();
+        document.getElementById('amountInput').value = '';
+        document.getElementById('descInput').value = '';
+    }
+
+    function deleteExpense(id) {
+        if(confirm("Delete this entry?")) {
+            expenses = expenses.filter(exp => exp.id !== id);
+            saveAndRender();
+        }
+    }
+
+    function clearAll() {
+        if(confirm("Clear all data?")) {
+            expenses = [];
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('flatExpenses', JSON.stringify(expenses));
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('expenseBody');
+        const totalDisplay = document.getElementById('totalAmount');
+        const perPersonDisplay = document.getElementById('perPersonAmount');
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        
+        // Search Summary Elements
+        const searchSummary = document.getElementById('searchSummary');
+        const searchQueryText = document.getElementById('searchQueryText');
+        const filteredTotalDisplay = document.getElementById('filteredTotalDisplay');
+        
+        tbody.innerHTML = '';
+        let grandTotal = 0;
+        let filteredTotal = 0;
+
+        // Calculate Grand Total first
+        expenses.forEach(exp => grandTotal += exp.amount);
+
+        // Filter for Search
+        const filteredExpenses = expenses.filter(exp => {
+            return exp.name.toLowerCase().includes(searchTerm) || 
+                   exp.desc.toLowerCase().includes(searchTerm);
+        });
+
+        // Show/Hide Search Summary
+        if (searchTerm.length > 0) {
+            searchSummary.style.display = 'block';
+            searchQueryText.innerText = `"${document.getElementById('searchInput').value}"`;
+        } else {
+            searchSummary.style.display = 'none';
+        }
+
+        filteredExpenses.forEach(exp => {
+            filteredTotal += exp.amount;
+            const row = `<tr>
+                <td><strong>${exp.name}</strong></td>
+                <td>
+                    ${exp.desc}<br>
+                    <span class="date-badge">📅 ${exp.dateTime}</span>
+                </td>
+                <td>₹${exp.amount.toLocaleString('en-IN')}</td>
+                <td class="no-print"><button class="delete-btn" onclick="deleteExpense(${exp.id})">Del</button></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+
+        // Update Displays
+        totalDisplay.innerText = `₹${grandTotal.toLocaleString('en-IN')}`;
+        perPersonDisplay.innerText = `₹${(grandTotal / 6).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+        filteredTotalDisplay.innerText = `₹${filteredTotal.toLocaleString('en-IN')}`;
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('reportArea');
+        const opt = {
+            margin: 10,
+            filename: 'Flat_Expenses.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    function shareWhatsApp() {
+        let total = document.getElementById('totalAmount').innerText;
+        let perPerson = document.getElementById('perPersonAmount').innerText;
+        let message = `*🏢 Flat Expense Report*%0A- Total: ${total}%0A- Per Head: ${perPerson}%0A%0A_Generated by Tracker_`;
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+    }
+
+    renderTable();
+</script>
+
+</body>
+</html>
