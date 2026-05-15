@@ -12,7 +12,7 @@ import type {
   ThemeMode,
 } from "@/lib/types";
 
-const today = new Date().toISOString().slice(0, 10);
+const getToday = () => new Date().toISOString().slice(0, 10);
 
 const defaultUsers: AuthUser[] = [
   { id: "member-1", name: "Aarav", email: "aarav@flat.io", provider: "demo" },
@@ -34,7 +34,7 @@ const defaultExpenses: Expense[] = [
     amount: 3600,
     description: "Weekly groceries",
     category: "Groceries",
-    dueDate: today,
+    dueDate: getToday(),
     paidBy: "member-1",
     splitMode: "even",
     splitRatio: {},
@@ -45,7 +45,7 @@ const defaultExpenses: Expense[] = [
     amount: 1800,
     description: "Electricity bill",
     category: "Utilities",
-    dueDate: today,
+    dueDate: getToday(),
     paidBy: "member-2",
     splitMode: "ratio",
     splitRatio: { "member-1": 40, "member-2": 30, "member-3": 30 },
@@ -58,7 +58,7 @@ const defaultTasks: TaskItem[] = [
     id: "task-1",
     title: "Take out trash",
     assignee: "member-3",
-    dueDate: today,
+    dueDate: getToday(),
     done: false,
     createdAt: new Date().toISOString(),
   },
@@ -66,11 +66,24 @@ const defaultTasks: TaskItem[] = [
     id: "task-2",
     title: "Clean kitchen",
     assignee: "member-2",
-    dueDate: today,
+    dueDate: getToday(),
     done: true,
     createdAt: new Date().toISOString(),
   },
 ];
+
+function generateInviteCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const size = 10;
+  const maxUnbiasedValue = Math.floor(256 / chars.length) * chars.length;
+  const values: string[] = [];
+  while (values.length < size) {
+    const next = crypto.getRandomValues(new Uint8Array(1))[0];
+    if (next >= maxUnbiasedValue) continue;
+    values.push(chars[next % chars.length]);
+  }
+  return values.join("");
+}
 
 type FlatState = {
   theme: ThemeMode;
@@ -154,7 +167,7 @@ export const useFlatStore = create<FlatState>()(
         const group: FlatGroup = {
           id: `group-${crypto.randomUUID()}`,
           name,
-          inviteCode: Math.random().toString(36).slice(2, 8).toUpperCase(),
+          inviteCode: generateInviteCode(),
           members: [current.id],
           createdBy: current.id,
         };

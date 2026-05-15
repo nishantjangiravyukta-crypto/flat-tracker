@@ -60,11 +60,16 @@ export default function Home() {
   const [settleFrom, setSettleFrom] = useState("");
   const [settleTo, setSettleTo] = useState("");
   const [settleAmount, setSettleAmount] = useState("0");
-  const [nowTs] = useState(() => Date.now());
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTimestamp(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const channel = new BroadcastChannel("flat-tracker-realtime");
@@ -146,9 +151,12 @@ export default function Home() {
   }, [activeMembers, expenses, settlements, memberMap]);
 
   const totalSpent = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
-  const upcoming = useMemo(
-    () => expenses.filter((expense) => new Date(expense.dueDate).getTime() >= nowTs - 86400000).slice(0, 5),
-    [expenses, nowTs]
+  const upcomingBills = useMemo(
+    () =>
+      expenses
+        .filter((expense) => new Date(expense.dueDate).getTime() >= currentTimestamp)
+        .slice(0, 5),
+    [currentTimestamp, expenses]
   );
 
   async function handleAuth(event: React.FormEvent) {
@@ -366,7 +374,7 @@ export default function Home() {
               value={money(balances.find((item) => item.member?.id === currentUser.id)?.total ?? 0)}
               hint="Positive = owed back"
             />
-            <MetricCard label="Upcoming bills" value={String(upcoming.length)} hint="Due soon" />
+            <MetricCard label="Upcoming bills" value={String(upcomingBills.length)} hint="Due soon" />
             <MetricCard label="Open chores" value={String(tasks.filter((task) => !task.done).length)} hint="Pending tasks" />
           </section>
 

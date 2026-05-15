@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
   getAuth,
@@ -18,10 +18,22 @@ const config = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
 
-const hasConfig = Object.values(config).every(Boolean);
+function hasFirebaseConfig(
+  value: typeof config
+): value is {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  appId: string;
+  messagingSenderId: string;
+} {
+  return Object.values(value).every((item) => typeof item === "string" && item.length > 0);
+}
 
-const app = hasConfig
-  ? getApps()[0] ?? initializeApp(config as Record<string, string>)
+const app = hasFirebaseConfig(config)
+  ? getApps().some((existingApp) => existingApp.name === "flat-tracker")
+    ? getApp("flat-tracker")
+    : initializeApp(config, "flat-tracker")
   : null;
 
 const auth = app ? getAuth(app) : null;
